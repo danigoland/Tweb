@@ -24,7 +24,10 @@ angular.module('AuthApp', ['uiGmapgoogle-maps'])
         $http.defaults.useXDomain = true;
 
 */
-
+        $scope.pplAroundintervalfunction = function(){
+            $scope.interval =  $interval(function(){
+                getPeopleAround();
+            },15000)};
 
 
         $scope.fetchmarkers = function(){
@@ -39,6 +42,7 @@ angular.module('AuthApp', ['uiGmapgoogle-maps'])
                     var lat = place.latitude
                     console.log(lat + "  "+ long);
                     $scope.markers.push(createMarker(i,lat,long,place.fullAddress,place.timeOfIncident,place.reportedBy))
+                    createCircle(i,lat,long)
                     i++;
                     $scope.$apply();
                 });
@@ -82,6 +86,49 @@ angular.module('AuthApp', ['uiGmapgoogle-maps'])
             ret[idKey] = i;
             return ret;
         };
+        var createMarkerPeopleAround = function(i, latitude,longitude,armed) {
+
+
+
+            idKey = "id";
+
+
+
+            var ret = {
+                icon:'http://maps.google.com/mapfiles/kml/shapes/police.png',
+                latitude: latitude,
+                longitude: longitude,
+                armed: armed
+            };
+            ret[idKey] = i;
+            return ret;
+        };
+        var createCircle = function(i,latitude,longitude){
+            var circle = {
+                id: i,
+                center: {
+                    latitude: latitude,
+                    longitude: longitude
+                },
+                radius: 500,
+                stroke: {
+                    color: '#4FC3F7',
+                    weight: 2,
+                    opacity: 1
+                },
+                fill: {
+                    color: '#4FC3F7',
+                    opacity: 0.5
+                },
+                geodesic: true, // optional: defaults to false
+                draggable: false, // optional: defaults to false
+                clickable: true, // optional: defaults to true
+                editable: false, // optional: defaults to false
+                visible: true, // optional: defaults to true
+                control: {}
+            };
+            $scope.circles.push(circle)
+        }
         $scope.coordsUpdates = 0;
         $scope.dynamicMoveCtr = 0;
         $scope.options = {scrollwheel: true};
@@ -96,9 +143,29 @@ angular.module('AuthApp', ['uiGmapgoogle-maps'])
             $scope.clicked=true;
             $scope.currentmodel=exactmodel;
             $scope.map = { center: { latitude: exactmodel.latitude, longitude: exactmodel.longitude }, zoom: 15 };
+            getPeopleAround();
+           $scope.pplAroundintervalfunction();
            // console.log(exactmodel);
         };
 
+        var getPeopleAround = function(){
+            var data = {
+                "longitude":$scope.currentmodel.longitude,"latitude":$scope.currentmodel.latitude,"pushToken":"dzBxIwNRYE0:nTGZ0_GVngV6Z68xdE8VdR64U0jNVaEiM7NsmGKQ7dbiCm27rN_NZANmSAAMiEfrLr6km4zqKFw71Em52baPAlvJ2V2QGQiSf3Fd3XG"}
+            $http.post("http://52.59.246.211/location/pplaround.php", data).success(function(data, status) {
+                console.log(data)
+                $scope.pplaround = data;
+                var i =0;
+                $scope.incidentMarkers=[];
+                angular.forEach($scope.pplaround, function(place){
+                    var long = place.longitude
+                    var lat = place.latitude
+                    console.log(lat + "  "+ long);
+                    $scope.incidentMarkers.push(createMarkerPeopleAround(i,lat,long,place.armed))
+                    i++;
+                    $scope.$apply();
+                });
+            }).error(function(data,status){console.log('failed')})
+        }
         $scope.deletemarker= function(markertodelete){
 
             var query = new Parse.Query("PlaceObject");
@@ -121,29 +188,7 @@ angular.module('AuthApp', ['uiGmapgoogle-maps'])
 
         };
         $scope.circles = [
-            {
-                id: 1,
-                center: {
-                    latitude: 40.1451,
-                    longitude: -99.6680
-                },
-                radius: 50,
-                stroke: {
-                    color: '#08B21F',
-                    weight: 2,
-                    opacity: 1
-                },
-                fill: {
-                    color: '#08B21F',
-                    opacity: 0.5
-                },
-                geodesic: true, // optional: defaults to false
-                draggable: true, // optional: defaults to false
-                clickable: true, // optional: defaults to true
-                editable: true, // optional: defaults to false
-                visible: true, // optional: defaults to true
-                control: {}
-            }
+
         ];
         $scope.intervalfunction();
 
